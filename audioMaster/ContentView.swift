@@ -20,15 +20,27 @@ enum Condition {
 // such as Live Activities and Dynamic Island animations.
 actor AudioActor {
     private var state: Condition = .idle
-    func toggleAudio() {
+    private func toggleAudio() {
         if state == .idle {
             state = .recording
         } else {
             state = .stopped
         }
     }
-    func getState() -> Condition{
-        return state
+//    func getState() -> Condition{
+//        return state
+//    }
+    func startRecording() async {
+        //handle permission denial
+        let granted = await AVAudioApplication.requestRecordPermission()
+        guard granted else {
+            print("Microphone should be allowed");
+            return
+        }
+        
+        toggleAudio();
+        
+        print("Current mode: \(state)")
     }
     private func configureAudioSession() throws {
         // continuation of audio recording while in background
@@ -38,8 +50,7 @@ actor AudioActor {
         let session = AVAudioSession.sharedInstance()
         // handling the error
         try session.setCategory(.playAndRecord, mode:.measurement, options: [
-            .allowBluetoothHFP,
-            .mixWithOthers
+            .allowBluetoothHFP
         ])
         try session.setActive(true);
     }
@@ -47,7 +58,7 @@ actor AudioActor {
 
 
 struct ContentView: View {
-    @State private var actor = AudioActor()  // initialize the audio system domain layer
+    @State private var audio = AudioActor()  // initialize the audio system domain layer
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -56,8 +67,7 @@ struct ContentView: View {
             Text("Hello, world!")
             Button {
                 Task {
-                    await actor.toggleAudio()
-                    print("Current mode: \(actor.getState())")
+                    await audio.startRecording();
                 }
             } label: {
                 Image(systemName: "mic")
